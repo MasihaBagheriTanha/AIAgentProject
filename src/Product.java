@@ -2,33 +2,33 @@ import java.util.*;
 
 public class Product {
     private int factoryPrice;
-    private int sellPrice;
+    private int consumerPrice;
     private int productBalance = 0;
 
-    public Product(int factoryPrice, int sellPrice, int productBalance) {
+    public Product(int factoryPrice, int consumerPrice, int productBalance) {
         this.factoryPrice = factoryPrice;
-        this.sellPrice = sellPrice;
+        this.consumerPrice = consumerPrice;
         this.productBalance = productBalance;
     }
 
-    public Product(int factoryPrice, int sellPrice) {
+    public Product(int factoryPrice, int consumerPrice) {
         this.factoryPrice = factoryPrice;
-        this.sellPrice = sellPrice;
+        this.consumerPrice = consumerPrice;
     }
 
     public void setFactoryPrice(int factoryPrice) {
         this.factoryPrice = factoryPrice;
     }
 
-    public void setSellPrice(int sellPrice) {
-        this.sellPrice = sellPrice;
+    public void setConsumerPrice(int consumerPrice) {
+        this.consumerPrice = consumerPrice;
     }
 
     public int setProductBalance_sell(int change, int balance) {
         if (change <= productBalance && change > 0) {
             productBalance -= change;
             System.out.println("Purchase successful");
-            return balance + change * sellPrice;
+            return balance + change * consumerPrice;
         } else {
             System.out.println("invalid purchase; not enough of product in storage available");
             return balance;
@@ -50,8 +50,8 @@ public class Product {
         return factoryPrice;
     }
 
-    public int getSellPrice() {
-        return sellPrice;
+    public int getConsumerPrice() {
+        return consumerPrice;
     }
 
     public int getProductBalance() {
