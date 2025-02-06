@@ -43,34 +43,60 @@ class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                // Skip the date and " - " part.
-                String logEntry = line.substring(line.indexOf("-") + 2);
+                try {
+                    // Skip the date and " - " part.
+                    String logEntry = line.substring(line.indexOf("-") + 2).trim();
 
-                if (logEntry.startsWith("Final balance:")) {
-                    balance = Double.parseDouble(logEntry.split(": ")[1]);
-                } else if (logEntry.startsWith("Initialized product:")) {
-                    String[] parts = logEntry.split(", ");
-                    String productName = parts[0].split(": ")[1];
-                    int factoryPrice = Integer.parseInt(parts[1].split(": ")[1]);
-                    int consumerPrice = Integer.parseInt(parts[2].split(": ")[1]);
-                    int initialStock = Integer.parseInt(parts[3].split(": ")[1]);
-                    products.put(productName, new Product(factoryPrice, consumerPrice, initialStock));
-                } else if (logEntry.startsWith("Sold")) {
-                    String[] parts = logEntry.split(" ");
-                    int quantity = Integer.parseInt(parts[1]);
-                    String productName = parts[5];
-                    if (products.containsKey(productName)) {
-                        products.get(productName).setProductBalance_sell(quantity, (int) balance);
+                    if (logEntry.startsWith("Final balance:")) {
+                        balance = Double.parseDouble(logEntry.split(": ")[1]);
+                    } else if (logEntry.startsWith("Initialized product:")) {
+                        String[] parts = logEntry.split(", ");
+                        String productName = parts[0].split(": ")[1];
+                        int factoryPrice = Integer.parseInt(parts[1].split(": ")[1]);
+                        int consumerPrice = Integer.parseInt(parts[2].split(": ")[1]);
+                        int initialStock = Integer.parseInt(parts[3].split(": ")[1]);
+                        products.put(productName, new Product(factoryPrice, consumerPrice, initialStock));
+                    } else if (logEntry.startsWith("Sold")) {
+                        String[] parts = logEntry.split(" ");
+                        int quantity = Integer.parseInt(parts[1]);
+                        String productName = parts[5];
+                        if (products.containsKey(productName)) {
+                            balance = products.get(productName).setProductBalance_sell(quantity, (int) balance);
+                        }
+                    } else if (logEntry.startsWith("Recharged")) {
+                        String[] parts = logEntry.split(" ");
+                        int quantity = Integer.parseInt(parts[1]);
+                        String productName = parts[5];
+                        if (products.containsKey(productName)) {
+                            balance = products.get(productName).setProductBalance_fill(quantity, (int) balance);
+                        }
+                    } else if (logEntry.startsWith("Modified product")) {
+                        String[] parts = logEntry.split(": ");
+                        String productName = parts[1].split(",")[0];
+
+                        if (!products.containsKey(productName)) {
+                            throw new IllegalArgumentException("Error: Modified product not found in session: " + productName);
+                        }
+
+                        Product product = products.get(productName);
+                        for (String change : logEntry.split(", ")) {
+                            if (change.contains("Factory Price changed from")) {
+                                int newFactoryPrice = Integer.parseInt(change.split(" to ")[1]);
+                                product.setFactoryPrice(newFactoryPrice);
+                            } else if (change.contains("Consumer Price changed from")) {
+                                int newConsumerPrice = Integer.parseInt(change.split(" to ")[1]);
+                                product.setConsumerPrice(newConsumerPrice);
+                            } else if (change.contains("Stock changed from")) {
+                                int newStock = Integer.parseInt(change.split(" to ")[1]);
+                                product.setProductBalance(newStock);
+                            }
+                        }
+                    } else {
+                        throw new IllegalArgumentException("Error: Unrecognized log entry format -> " + logEntry);
                     }
-                } else if (logEntry.startsWith("Recharged")) {
-                    String[] parts = logEntry.split(" ");
-                    int quantity = Integer.parseInt(parts[1]);
-                    String productName = parts[5];
-                    if (products.containsKey(productName)) {
-                        products.get(productName).setProductBalance_fill(quantity, (int) balance);
-                    }
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
                 }
-                // For modifications (and balance changes) we assume the final values have been recorded.
             }
         } catch (IOException e) {
             System.out.println("Error loading session: " + e.getMessage());
@@ -94,6 +120,10 @@ class Main {
             listProducts();
         } else if (command.equalsIgnoreCase("modifyProduct")) {
             modifyProduct();
+        } else if (command.equalsIgnoreCase("aIAnalysis")) {
+            aIAnalysis();
+        } else if (command.equalsIgnoreCase("advancedAIAnalysis")) {
+            advancedAIAnalysis();
         } else if (command.equalsIgnoreCase("help")) {
             displayHelp();
         } else {
@@ -265,6 +295,8 @@ class Main {
         System.out.println("addBalance - Add funds to balance");
         System.out.println("reduceBalance - Deduct funds from balance");
         System.out.println("optimizeRestock - Suggests optimized restock levels");
+        System.out.println("aIAnalysis - Perform basic AI log analysis");
+        System.out.println("advancedAIAnalysis - Perform advanced AI analysis for optimal restocking");
         System.out.println("help - Display this help message");
         System.out.println("exit - Exit the program");
     }
@@ -277,7 +309,7 @@ class Main {
         String response = scanner.nextLine().trim().toLowerCase();
 
         if (response.equals("yes")) {
-            budget = (int)balance;
+            budget = (int) balance;
         } else {
             System.out.println("Enter the amount you want to invest in restocking:");
             try {
@@ -337,5 +369,19 @@ class Main {
         } catch (IOException e) {
             System.out.println("Error logging transaction: " + e.getMessage());
         }
+    }
+
+    // New method for basic AI log analysis using OpenAiClient.sendLogToOpenAI()
+    private static void aIAnalysis() {
+        System.out.println("Performing basic AI log analysis...");
+        OpenAiClient client = OpenAiClient.getInstance();
+        client.sendLogToOpenAI();
+    }
+
+    // New method for advanced AI log analysis using OpenAiClient.sendLogToOpenAIBetterPrompt()
+    private static void advancedAIAnalysis() {
+        System.out.println("Performing advanced AI analysis...");
+        OpenAiClient client = OpenAiClient.getInstance();
+        client.sendLogToOpenAIBetterPrompt();
     }
 }
