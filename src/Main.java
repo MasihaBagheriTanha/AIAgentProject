@@ -43,6 +43,7 @@ class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = reader.readLine()) != null) {
+                // Skip the date and " - " part.
                 String logEntry = line.substring(line.indexOf("-") + 2);
 
                 if (logEntry.startsWith("Final balance:")) {
@@ -69,6 +70,7 @@ class Main {
                         products.get(productName).setProductBalance_fill(quantity, (int) balance);
                     }
                 }
+                // For modifications (and balance changes) we assume the final values have been recorded.
             }
         } catch (IOException e) {
             System.out.println("Error loading session: " + e.getMessage());
@@ -84,6 +86,14 @@ class Main {
             rechargeProduct(command);
         } else if (command.equalsIgnoreCase("optimizeRestock")) {
             optimizeRestock();
+        } else if (command.equalsIgnoreCase("addBalance")) {
+            addBalance();
+        } else if (command.equalsIgnoreCase("reduceBalance")) {
+            reduceBalance();
+        } else if (command.equalsIgnoreCase("products")) {
+            listProducts();
+        } else if (command.equalsIgnoreCase("modifyProduct")) {
+            modifyProduct();
         } else if (command.equalsIgnoreCase("help")) {
             displayHelp();
         } else {
@@ -140,18 +150,185 @@ class Main {
         logTransaction("Recharged " + quantity + " units of product: " + productName);
     }
 
+    private static void addBalance() {
+        System.out.println("Enter amount to add to balance:");
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); // Consume newline
+        if (amount > 0) {
+            balance += amount;
+            logTransaction("Added " + amount + " to balance. New balance: " + balance);
+            System.out.println("Balance updated successfully.");
+        } else {
+            System.out.println("Invalid amount. Please enter a positive value.");
+        }
+    }
+
+    private static void reduceBalance() {
+        System.out.println("Enter amount to reduce from balance:");
+        double amount = scanner.nextDouble();
+        scanner.nextLine(); // Consume newline
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            logTransaction("Reduced " + amount + " from balance. New balance: " + balance);
+            System.out.println("Balance updated successfully.");
+        } else {
+            System.out.println("Invalid amount. Ensure it's positive and does not exceed current balance.");
+        }
+    }
+
+    private static void listProducts() {
+        if (products.isEmpty()) {
+            System.out.println("No products available.");
+        } else {
+            System.out.println("Product List:");
+            for (Map.Entry<String, Product> entry : products.entrySet()) {
+                String name = entry.getKey();
+                Product p = entry.getValue();
+                System.out.println("Product Name: " + name
+                        + ", Factory Price: " + p.getFactoryPrice()
+                        + ", Consumer Price: " + p.getConsumerPrice()
+                        + ", Stock: " + p.getProductBalance());
+            }
+        }
+    }
+
+    private static void modifyProduct() {
+        System.out.println("Enter product name to modify:");
+        String productName = scanner.nextLine();
+        if (!products.containsKey(productName)) {
+            System.out.println("Product not found.");
+            return;
+        }
+        Product product = products.get(productName);
+        System.out.println("Current details for " + productName + ":");
+        System.out.println("Factory Price: " + product.getFactoryPrice()
+                + ", Consumer Price: " + product.getConsumerPrice()
+                + ", Stock: " + product.getProductBalance());
+        boolean modified = false;
+
+        System.out.println("Enter new factory price (or press enter to skip):");
+        String input = scanner.nextLine();
+        if (!input.trim().isEmpty()) {
+            try {
+                int newFactoryPrice = Integer.parseInt(input.trim());
+                int oldFactoryPrice = product.getFactoryPrice();
+                product.setFactoryPrice(newFactoryPrice);
+                logTransaction("Modified product " + productName + ": Factory Price changed from " + oldFactoryPrice + " to " + newFactoryPrice);
+                modified = true;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input for factory price. Skipping modification for factory price.");
+            }
+        }
+
+        System.out.println("Enter new consumer price (or press enter to skip):");
+        input = scanner.nextLine();
+        if (!input.trim().isEmpty()) {
+            try {
+                int newConsumerPrice = Integer.parseInt(input.trim());
+                int oldConsumerPrice = product.getConsumerPrice();
+                product.setConsumerPrice(newConsumerPrice);
+                logTransaction("Modified product " + productName + ": Consumer Price changed from " + oldConsumerPrice + " to " + newConsumerPrice);
+                modified = true;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input for consumer price. Skipping modification for consumer price.");
+            }
+        }
+
+        System.out.println("Enter new stock level (or press enter to skip):");
+        input = scanner.nextLine();
+        if (!input.trim().isEmpty()) {
+            try {
+                int newStock = Integer.parseInt(input.trim());
+                int oldStock = product.getProductBalance();
+                product.setProductBalance(newStock);
+                logTransaction("Modified product " + productName + ": Stock changed from " + oldStock + " to " + newStock);
+                modified = true;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input for stock level. Skipping modification for stock level.");
+            }
+        }
+
+        if (modified) {
+            System.out.println("Product modified successfully.");
+        } else {
+            System.out.println("No modifications applied.");
+        }
+    }
+
     private static void displayHelp() {
         System.out.println("Available commands:");
         System.out.println("addProduct - Add a new product");
         System.out.println("sell - Sell a product");
         System.out.println("recharge - Restock a product");
+        System.out.println("products - List all products with their details");
+        System.out.println("modifyProduct - Modify properties of an existing product");
+        System.out.println("addBalance - Add funds to balance");
+        System.out.println("reduceBalance - Deduct funds from balance");
         System.out.println("optimizeRestock - Suggests optimized restock levels");
         System.out.println("help - Display this help message");
         System.out.println("exit - Exit the program");
     }
 
     private static void optimizeRestock() {
-        System.out.println("Optimization function is currently under development.");
+        System.out.println("Your current balance is: " + balance);
+        System.out.println("Do you want to use the full balance for restocking? (yes/no)");
+
+        int budget;
+        String response = scanner.nextLine().trim().toLowerCase();
+
+        if (response.equals("yes")) {
+            budget = (int)balance;
+        } else {
+            System.out.println("Enter the amount you want to invest in restocking:");
+            try {
+                budget = Integer.parseInt(scanner.nextLine().trim());
+                if (budget > balance) {
+                    System.out.println("You cannot invest more than your current balance.");
+                    return;
+                } else if (budget <= 0) {
+                    System.out.println("Invalid amount. Please enter a positive number.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid number.");
+                return;
+            }
+        }
+
+        StockpileOptimizer optimizer = new StockpileOptimizer(budget, (HashMap<String, Product>) products);
+        HashMap<String, Integer> restockPlan = optimizer.optimizeStockpile();
+
+        if (restockPlan.isEmpty()) {
+            System.out.println("No products can be restocked within the budget.");
+            return;
+        }
+
+        System.out.println("Optimized Restock Plan:");
+        for (Map.Entry<String, Integer> entry : restockPlan.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue() + " units");
+        }
+
+        System.out.println("Do you want to proceed with this restock? (yes/no)");
+        String confirmation = scanner.nextLine().trim().toLowerCase();
+
+        if (confirmation.equals("yes")) {
+            for (Map.Entry<String, Integer> entry : restockPlan.entrySet()) {
+                String productName = entry.getKey();
+                int restockAmount = entry.getValue();
+                Product product = products.get(productName);
+
+                if (product != null) {
+                    product.setProductBalance(product.getProductBalance() + restockAmount);
+                    logTransaction("Recharged " + restockAmount + " units of Product: " + productName);
+                    System.out.println(productName + ": " + restockAmount + " units added to stock.");
+                }
+            }
+
+            balance -= budget;
+            System.out.println("Restocking completed! Remaining balance: " + balance);
+        } else {
+            System.out.println("Restocking canceled.");
+        }
     }
 
     private static void logTransaction(String message) {

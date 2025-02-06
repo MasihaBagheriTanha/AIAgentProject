@@ -24,13 +24,21 @@ public class Product {
         this.consumerPrice = consumerPrice;
     }
 
+    public void setProductBalance(int productBalance) {
+        if (productBalance >= 0) {
+            this.productBalance = productBalance;
+        } else {
+            System.out.println("Invalid product balance. It cannot be negative.");
+        }
+    }
+
     public int setProductBalance_sell(int change, int balance) {
         if (change <= productBalance && change > 0) {
             productBalance -= change;
             System.out.println("Purchase successful");
             return balance + change * consumerPrice;
         } else {
-            System.out.println("invalid purchase; not enough of product in storage available");
+            System.out.println("Invalid purchase; not enough product in storage available");
             return balance;
         }
     }
@@ -41,7 +49,7 @@ public class Product {
             System.out.println("Storage successfully recharged");
             return balance - change * factoryPrice;
         } else {
-            System.out.println("Enter a Valid amount to add to storage");
+            System.out.println("Enter a valid amount to add to storage");
             return balance;
         }
     }

@@ -2,6 +2,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.*;
 
 public class StockpileOptimizer {
     private HashMap<String, Integer> demandForecast;
@@ -23,13 +24,15 @@ public class StockpileOptimizer {
             List<String> lines = Files.readAllLines(Paths.get("transactions.log"));
             HashMap<String, List<Integer>> salesData = new HashMap<>();
 
-            for (String line : lines) {
-                String[] parts = line.split(" ");
-                if (parts.length < 5) continue;
+            // Regex to match logs with a timestamp, e.g.,
+            // "Fri Feb 07 00:53:13 IRST 2025 - Sold 3 units of product: apple"
+            Pattern pattern = Pattern.compile(".* - Sold (\\d+) units of product: (.+)");
 
-                if (line.contains("Sold")) {
-                    String productName = parts[2];
-                    int amount = Integer.parseInt(parts[3]);
+            for (String line : lines) {
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    int amount = Integer.parseInt(matcher.group(1));
+                    String productName = matcher.group(2).trim();
 
                     salesData.putIfAbsent(productName, new ArrayList<>());
                     salesData.get(productName).add(amount);
