@@ -1,3 +1,13 @@
 Wed Feb 05 21:03:43 IRST 2025 - Recharged 5 of shirt. New balance: 750
 Wed Feb 05 21:03:51 IRST 2025 - Sold 3 of shirt. New balance: 990
 Wed Feb 05 21:04:14 IRST 2025 - Recharged 2 of Pants. New balance: 790
+Fri Feb 07 00:15:46 IRST 2025 - Sold 12 of Apple. New balance: 1180
+Fri Feb 07 00:16:37 IRST 2025 - Recharged 25 of Apple. New balance: 930
+Fri Feb 07 00:17:19 IRST 2025 - Sold 6 of shirt. New balance: 1830
+Fri Feb 07 00:17:27 IRST 2025 - Recharged 7 of shirt. New balance: 1130
+Fri Feb 07 00:41:31 IRST 2025 - Initialized product with ID: 18ca95e3-05f1-4df4-8c04-812a6d902c50, Factory Price: 150, Consumer Price: 100, Initial Stock: 20
+Fri Feb 07 00:48:39 IRST 2025 - Initialized product: Apple, Factory Price: 10, Consumer Price: 15, Initial Stock: 17
+Fri Feb 07 00:49:24 IRST 2025 - Sold 10 units of product: Apple
+Fri Feb 07 00:53:01 IRST 2025 - Initialized product: apple, Factory Price: 10, Consumer Price: 15, Initial Stock: 5
+Fri Feb 07 00:53:13 IRST 2025 - Sold 3 units of product: apple
+Fri Feb 07 00:53:17 IRST 2025 - Final balance: 1045.0

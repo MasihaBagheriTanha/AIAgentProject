@@ -1,170 +1,164 @@
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
-import java.io.File;
+import java.text.SimpleDateFormat;
 
-public class Main {
+class Main {
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final Map<String, Product> products = new HashMap<>();
+    private static double balance;
+    private static String logFile;
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss 'IRST' yyyy");
+
     public static void main(String[] args) {
-        int balance;
-        LinkedList<Product> products = new LinkedList<>();
-        HashMap<String, Product> productMap = new HashMap<>();
+        System.out.println("Do you want to continue a previous session? (yes/no)");
+        String response = scanner.nextLine().trim().toLowerCase();
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter your current cash balance:");
-        balance = scanner.nextInt();
-        scanner.nextLine();
-
-        System.out.println("Enter \"help\" to see available commands:\n");
+        if (response.equals("yes")) {
+            System.out.println("Enter the log file name:");
+            logFile = scanner.nextLine();
+            loadSession(logFile);
+        } else {
+            int sessionNumber = new File(".").list((dir, name) -> name.startsWith("transactions") && name.endsWith(".log")).length + 1;
+            logFile = "transactions" + sessionNumber + ".log";
+            System.out.println("Enter your starting cash balance:");
+            balance = scanner.nextDouble();
+            scanner.nextLine(); // Consume newline
+        }
 
         while (true) {
             System.out.println("Enter a command, type 'exit' to quit:");
             String command = scanner.nextLine();
-            String[] parts = command.split(" ");
-
-            if (command.equalsIgnoreCase("help")) {
-                System.out.println("Available commands:\n");
-                System.out.println("Exit: exits the program\n");
-                System.out.println("recharge <product> <amount>: fills the storage of said product by the amount mentioned\n");
-                System.out.println("sell <product> <amount>: sells the product and updates balance\n");
-                System.out.println("addProduct: add a new product dynamically\n");
-                System.out.println("saleDataAnalysis: sends transaction logs to OpenAI for analysis\n");
-                System.out.println("advancedSaleDataAnalysis: sends transaction logs to OpenAI for more advanced analysis\n");
-                System.out.println("optimizeRestock: locally analyzes sales data and recommends restocking\n");
-                continue;
-            }
 
             if (command.equalsIgnoreCase("exit")) {
-                System.out.println("Exiting program...\n");
+                System.out.println("Exiting program...");
+                System.out.println("Final balance: " + balance);
+                logTransaction("Final balance: " + balance);
                 break;
             }
-
-            if (command.equalsIgnoreCase("addProduct")) {
-                System.out.println("Enter product name:");
-                String productName = scanner.nextLine();
-
-                System.out.println("Enter factory price:");
-                int productFactoryPrice = scanner.nextInt();
-                scanner.nextLine();
-
-                System.out.println("Enter consumer price:");
-                int productConsumerPrice = scanner.nextInt();
-                scanner.nextLine();
-
-                System.out.println("Is there any initial balance in storage? (1 for yes, 0 for no)");
-                int hasInitialBalance = scanner.nextInt();
-                scanner.nextLine();
-
-                Product product;
-                if (hasInitialBalance == 0) {
-                    product = new Product(productFactoryPrice, productConsumerPrice);
-                } else {
-                    System.out.println("Enter initial balance:");
-                    int productInitialBalance = scanner.nextInt();
-                    scanner.nextLine();
-                    product = new Product(productFactoryPrice, productConsumerPrice, productInitialBalance);
-                }
-                products.add(product);
-                productMap.put(productName, product);
-                System.out.println("Product " + productName + " registered successfully!\n");
-                continue;
-            }
-
-            if (parts.length == 3) {
-                String action = parts[0];
-                String productName = parts[1];
-                int amount;
-
-                try {
-                    amount = Integer.parseInt(parts[2]);
-                } catch (NumberFormatException e) {
-                    System.out.println("Invalid number format. Please enter a valid amount.\n");
-                    continue;
-                }
-
-                if (amount <= 0) {
-                    System.out.println("Amount must be a positive number.\n");
-                    continue;
-                }
-
-                if (!productMap.containsKey(productName)) {
-                    System.out.println("Product not found. Use 'addProduct' to register new products.\n");
-                    continue;
-                }
-
-                Product product = productMap.get(productName);
-
-                if (action.equalsIgnoreCase("recharge")) {
-                    int newBalance = product.setProductBalance_fill(amount, balance);
-                    if (newBalance != balance) {
-                        balance = newBalance;
-                        logTransaction("Recharged " + amount + " of " + productName + ". New balance: " + balance);
-                        System.out.println("Updated balance: " + balance + "\n");
-                    }
-                } else if (action.equalsIgnoreCase("sell")) {
-                    int newBalance = product.setProductBalance_sell(amount, balance);
-                    if (newBalance != balance) {
-                        balance = newBalance;
-                        logTransaction("Sold " + amount + " of " + productName + ". New balance: " + balance);
-                        System.out.println("Updated balance: " + balance + "\n");
-                    }
-                } else {
-                    System.out.println("Invalid command. Use 'help' to see available commands.\n");
-                }
-            } else if (command.equalsIgnoreCase("saleDataAnalysis")) {
-                runSaleDataAnalysis();
-            } else if (command.equalsIgnoreCase("advancedSaleDataAnalysis")) {
-                runAdvancedSaleDataAnalysis();
-            } else if (command.equalsIgnoreCase("optimizeRestock")) {
-                runStockpileOptimization(balance, productMap);
-            } else {
-                System.out.println("Invalid command format. Use 'help' to see available commands.\n");
-            }
+            processCommand(command);
         }
+    }
 
-        System.out.println("Final balance: " + balance);
-        scanner.close();
+    private static void loadSession(String filename) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String logEntry = line.substring(line.indexOf("-") + 2);
+
+                if (logEntry.startsWith("Final balance:")) {
+                    balance = Double.parseDouble(logEntry.split(": ")[1]);
+                } else if (logEntry.startsWith("Initialized product:")) {
+                    String[] parts = logEntry.split(", ");
+                    String productName = parts[0].split(": ")[1];
+                    int factoryPrice = Integer.parseInt(parts[1].split(": ")[1]);
+                    int consumerPrice = Integer.parseInt(parts[2].split(": ")[1]);
+                    int initialStock = Integer.parseInt(parts[3].split(": ")[1]);
+                    products.put(productName, new Product(factoryPrice, consumerPrice, initialStock));
+                } else if (logEntry.startsWith("Sold")) {
+                    String[] parts = logEntry.split(" ");
+                    int quantity = Integer.parseInt(parts[1]);
+                    String productName = parts[5];
+                    if (products.containsKey(productName)) {
+                        products.get(productName).setProductBalance_sell(quantity, (int) balance);
+                    }
+                } else if (logEntry.startsWith("Recharged")) {
+                    String[] parts = logEntry.split(" ");
+                    int quantity = Integer.parseInt(parts[1]);
+                    String productName = parts[5];
+                    if (products.containsKey(productName)) {
+                        products.get(productName).setProductBalance_fill(quantity, (int) balance);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading session: " + e.getMessage());
+        }
+    }
+
+    private static void processCommand(String command) {
+        if (command.equalsIgnoreCase("addProduct")) {
+            addProduct();
+        } else if (command.startsWith("sell")) {
+            sellProduct(command);
+        } else if (command.startsWith("recharge")) {
+            rechargeProduct(command);
+        } else if (command.equalsIgnoreCase("optimizeRestock")) {
+            optimizeRestock();
+        } else if (command.equalsIgnoreCase("help")) {
+            displayHelp();
+        } else {
+            System.out.println("Unknown command. Type 'help' for a list of commands.");
+        }
+    }
+
+    private static void addProduct() {
+        System.out.println("Enter product name:");
+        String productName = scanner.nextLine();
+        System.out.println("Enter factory price:");
+        int factoryPrice = scanner.nextInt();
+        System.out.println("Enter consumer price:");
+        int consumerPrice = scanner.nextInt();
+        System.out.println("Enter initial balance in storage:");
+        int initialBalance = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        Product product = new Product(factoryPrice, consumerPrice, initialBalance);
+        products.put(productName, product);
+        logTransaction("Initialized product: " + productName + ", Factory Price: " + factoryPrice + ", Consumer Price: " + consumerPrice + ", Initial Stock: " + initialBalance);
+        System.out.println("Product registered successfully with name: " + productName);
+    }
+
+    private static void sellProduct(String command) {
+        System.out.println("Enter product name:");
+        String productName = scanner.nextLine();
+        if (!products.containsKey(productName)) {
+            System.out.println("Product not found.");
+            return;
+        }
+        System.out.println("Enter quantity to sell:");
+        int quantity = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        Product product = products.get(productName);
+        balance = product.setProductBalance_sell(quantity, (int) balance);
+        logTransaction("Sold " + quantity + " units of product: " + productName);
+    }
+
+    private static void rechargeProduct(String command) {
+        System.out.println("Enter product name:");
+        String productName = scanner.nextLine();
+        if (!products.containsKey(productName)) {
+            System.out.println("Product not found.");
+            return;
+        }
+        System.out.println("Enter quantity to add:");
+        int quantity = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+
+        Product product = products.get(productName);
+        balance = product.setProductBalance_fill(quantity, (int) balance);
+        logTransaction("Recharged " + quantity + " units of product: " + productName);
+    }
+
+    private static void displayHelp() {
+        System.out.println("Available commands:");
+        System.out.println("addProduct - Add a new product");
+        System.out.println("sell - Sell a product");
+        System.out.println("recharge - Restock a product");
+        System.out.println("optimizeRestock - Suggests optimized restock levels");
+        System.out.println("help - Display this help message");
+        System.out.println("exit - Exit the program");
+    }
+
+    private static void optimizeRestock() {
+        System.out.println("Optimization function is currently under development.");
     }
 
     private static void logTransaction(String message) {
-        try (FileWriter writer = new FileWriter("transactions.log", true)) {
-            writer.write(new Date() + " - " + message + "\n");
+        try (FileWriter writer = new FileWriter(logFile, true)) {
+            writer.write(dateFormat.format(new Date()) + " - " + message + "\n");
         } catch (IOException e) {
-            System.out.println("Error writing to log file.");
-        }
-    }
-
-    private static void runSaleDataAnalysis() {
-        File logFile = new File("transactions.log");
-        if (!logFile.exists() || logFile.length() == 0) {
-            System.out.println("No transaction data found. Please make some transactions before analyzing sales data.\n");
-            return;
-        }
-        System.out.println("Sending transaction logs for analysis...\n");
-        OpenAiClient.getInstance().sendLogToOpenAI();
-    }
-
-    private static void runAdvancedSaleDataAnalysis() {
-        File logFile = new File("transactions.log");
-        if (!logFile.exists() || logFile.length() == 0) {
-            System.out.println("No transaction data found. Please make some transactions before analyzing sales data.\n");
-            return;
-        }
-        System.out.println("Sending transaction logs for analysis...\n");
-        OpenAiClient.getInstance().sendLogToOpenAIBetterPrompt();
-    }
-
-    private static void runStockpileOptimization(int balance, HashMap<String, Product> productMap) {
-        if (productMap.isEmpty()) {
-            System.out.println("No products available to optimize restocking.\n");
-            return;
-        }
-        StockpileOptimizer optimizer = new StockpileOptimizer(balance, productMap);
-        HashMap<String, Integer> purchasePlan = optimizer.optimizeStockpile();
-        if (purchasePlan.isEmpty()) {
-            System.out.println("No restocking needed or insufficient budget.\n");
-        } else {
-            System.out.println("Recommended restock amounts:");
-            purchasePlan.forEach((key, value) -> System.out.println(key + ": " + value + " units"));
+            System.out.println("Error logging transaction: " + e.getMessage());
         }
     }
 }
