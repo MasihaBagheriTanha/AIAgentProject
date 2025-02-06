@@ -6,26 +6,23 @@ import java.util.regex.*;
 
 public class StockpileOptimizer {
     private HashMap<String, Integer> demandForecast;
-    private HashMap<String, Integer> productFactoryPrices;
+    private HashMap<String, Product> productMap;
     private int availableBudget;
+    private String logFileName;
 
-    public StockpileOptimizer(int budget, HashMap<String, Product> productMap) {
+    public StockpileOptimizer(int budget, HashMap<String, Product> productMap, String logFileName) {
         this.availableBudget = budget;
         this.demandForecast = new HashMap<>();
-        this.productFactoryPrices = new HashMap<>();
-
-        for (Map.Entry<String, Product> entry : productMap.entrySet()) {
-            productFactoryPrices.put(entry.getKey(), entry.getValue().getFactoryPrice());
-        }
+        this.productMap = productMap;
+        this.logFileName = logFileName;
     }
 
     public void analyzeTransactions() {
         try {
-            List<String> lines = Files.readAllLines(Paths.get("transactions.log"));
+            List<String> lines = Files.readAllLines(Paths.get(logFileName));
             HashMap<String, List<Integer>> salesData = new HashMap<>();
 
-            // Regex to match logs with a timestamp, e.g.,
-            // "Fri Feb 07 00:53:13 IRST 2025 - Sold 3 units of product: apple"
+            // Regex to match logs with a timestamp
             Pattern pattern = Pattern.compile(".* - Sold (\\d+) units of product: (.+)");
 
             for (String line : lines) {
@@ -58,7 +55,7 @@ public class StockpileOptimizer {
             }
 
         } catch (IOException e) {
-            System.out.println("Error reading transaction log.");
+            System.out.println("Error reading transaction log file: " + logFileName);
         }
     }
 
@@ -66,17 +63,19 @@ public class StockpileOptimizer {
         HashMap<String, Integer> purchasePlan = new HashMap<>();
         analyzeTransactions();
 
+        int remainingBudget = availableBudget;
+
         for (Map.Entry<String, Integer> entry : demandForecast.entrySet()) {
             String product = entry.getKey();
             int forecastedDemand = entry.getValue();
-            int factoryPrice = productFactoryPrices.getOrDefault(product, Integer.MAX_VALUE);
+            int factoryPrice = productMap.containsKey(product) ? productMap.get(product).getFactoryPrice() : Integer.MAX_VALUE;
 
-            int maxAffordable = availableBudget / factoryPrice;
+            int maxAffordable = (factoryPrice == 0) ? 0 : remainingBudget / factoryPrice;
             int purchaseAmount = Math.min(forecastedDemand, maxAffordable);
 
             if (purchaseAmount > 0) {
                 purchasePlan.put(product, purchaseAmount);
-                availableBudget -= purchaseAmount * factoryPrice;
+                remainingBudget -= purchaseAmount * factoryPrice;
             }
         }
         return purchasePlan;

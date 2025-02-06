@@ -326,8 +326,10 @@ class Main {
                 return;
             }
         }
+        System.out.println("Enter the transaction log file name:");
+        String logFileName = scanner.nextLine().trim();
 
-        StockpileOptimizer optimizer = new StockpileOptimizer(budget, (HashMap<String, Product>) products);
+        StockpileOptimizer optimizer = new StockpileOptimizer(budget, (HashMap<String, Product>) products, logFileName);
         HashMap<String, Integer> restockPlan = optimizer.optimizeStockpile();
 
         if (restockPlan.isEmpty()) {
@@ -363,6 +365,7 @@ class Main {
         }
     }
 
+
     private static void logTransaction(String message) {
         try (FileWriter writer = new FileWriter(logFile, true)) {
             writer.write(dateFormat.format(new Date()) + " - " + message + "\n");
@@ -371,14 +374,12 @@ class Main {
         }
     }
 
-    // New method for basic AI log analysis using OpenAiClient.sendLogToOpenAI()
     private static void aIAnalysis() {
         System.out.println("Performing basic AI log analysis...");
         OpenAiClient client = OpenAiClient.getInstance();
         client.sendLogToOpenAI();
     }
 
-    // New method for advanced AI log analysis using OpenAiClient.sendLogToOpenAIBetterPrompt()
     private static void advancedAIAnalysis() {
         System.out.println("Performing advanced AI analysis...");
         OpenAiClient client = OpenAiClient.getInstance();

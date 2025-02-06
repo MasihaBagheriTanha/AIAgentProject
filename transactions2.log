@@ -1,0 +1,9 @@
+Fri Feb 07 02:43:37 IRST 2025 - Initialized product: shirt, Factory Price: 100, Consumer Price: 150, Initial Stock: 10
+Fri Feb 07 02:44:10 IRST 2025 - Initialized product: Pants, Factory Price: 200, Consumer Price: 300, Initial Stock: 8
+Fri Feb 07 02:44:12 IRST 2025 - Final balance: 1000.0
+Fri Feb 07 02:44:53 IRST 2025 - Sold 5 units of product: shirt
+Fri Feb 07 02:45:10 IRST 2025 - Sold 3 units of product: Pants
+Fri Feb 07 02:45:38 IRST 2025 - Final balance: 2650.0
+Fri Feb 07 02:47:26 IRST 2025 - Initialized product: shoes, Factory Price: 150, Consumer Price: 220, Initial Stock: 12
+Fri Feb 07 02:47:43 IRST 2025 - Sold 4 units of product: shoes
+Fri Feb 07 02:47:53 IRST 2025 - Final balance: 3530.0
